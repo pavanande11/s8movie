@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Movies List</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .title {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .title h2 {
+        color: #333;
+        font-size: 2.5em;
+      }
+
+      .nav {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 30px;
+      }
+
+      .filter {
+        padding: 10px 20px;
+        font-size: 16px;
+        border: 2px solid #333;
+        background-color: white;
+        color: #333;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+      }
+
+      .filter:hover {
+        background-color: #333;
+        color: white;
+      }
+
+      .filter.active {
+        background-color: #333;
+        color: white;
+      }
+
+      .movielist {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+      }
+
+      .movie-card {
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 15px;
+        width: 280px;
+        background-color: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        text-align: center;
+      }
+
+      .movie-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .movie-card img {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        background-color: #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .movie-card h3 {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 1.2em;
+      }
+
+      .movie-card p {
+        color: #666;
+        margin: 5px 0;
+        font-size: 0.9em;
+      }
+
+      .movie-card .genres {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+      }
+
+      .movie-card .genres span {
+        display: inline-block;
+        background-color: #f0f0f0;
+        padding: 3px 8px;
+        margin: 2px;
+        border-radius: 3px;
+        font-size: 0.8em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="title">
+        <h2>Movies</h2>
+      </div>
+      <div class="nav">
+        <button class="filter active" data-filter="all">All</button>
+        <!-- Genre buttons will be dynamically inserted here -->
+      </div>
+      <div class="movielist">
+        <!-- Movie items will be dynamically inserted here -->
+      </div>
+    </div>
+
+    <script>
+      // Fetch movies data from JSON file
+      const fetchMovies = async () => {
+        try {
+          const response = await fetch("./moviesdb.json");
+          if (!response.ok) {
+            throw new Error("Failed to fetch movies data");
+          }
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          console.error("Error fetching movies:", error);
+          return [];
+        }
+      };
+
+      // Get all unique genres from movies data
+      const getAllGenres = (movies) => {
+        const genresSet = new Set();
+        movies.forEach((movie) => {
+          if (movie.genres && Array.isArray(movie.genres)) {
+            movie.genres.forEach((genre) => genresSet.add(genre));
+          }
+        });
+        return Array.from(genresSet).sort();
+      };
+
+      // Create genre filter buttons
+      const createGenreButtons = (genres) => {
+        const nav = document.querySelector(".nav");
+        genres.forEach((genre) => {
+          const button = document.createElement("button");
+          button.className = "filter";
+          button.textContent = genre;
+          button.setAttribute("data-filter", genre);
+          nav.appendChild(button);
+        });
+      };
+
+      // Display movies based on selected genre
+      const displayMovies = async (filter = "all") => {
+        const data = await fetchMovies();
+        const movielist = document.querySelector(".movielist");
+        movielist.innerHTML = "";
+
+        // Filter movies based on selected genre
+        const filtered =
+          filter === "all"
+            ? data
+            : data.filter((movie) =>
+                movie.genres && movie.genres.includes(filter)
+              );
+
+        // Update active button
+        document.querySelectorAll(".filter").forEach((btn) => {
+          btn.classList.remove("active");
+          if (btn.dataset.filter === filter) {
+            btn.classList.add("active");
+          }
+        });
+
+        // Display filtered movies as cards
+        if (filtered.length === 0) {
+          movielist.innerHTML = "<p>No movies found for this genre.</p>";
+          return;
+        }
+
+        filtered.forEach((movie) => {
+          const card = document.createElement("div");
+          card.className = "movie-card";
+          card.innerHTML = `
+            <img src="${movie.imageUrl}" alt="${movie.movieTitle}" />
+            <h3>${movie.movieTitle}</h3>
+            <p><strong>Year:</strong> ${movie.year || "N/A"}</p>
+            <p><strong>Actors:</strong> ${
+              movie.actors && movie.actors.length > 0
+                ? movie.actors.join(", ")
+                : "N/A"
+            }</p>
+            <div class="genres">
+              <strong>Genres:</strong><br />
+              ${
+                movie.genres && movie.genres.length > 0
+                  ? movie.genres
+                      .map((genre) => `<span>${genre}</span>`)
+                      .join("")
+                  : "N/A"
+              }
+            </div>
+          `;
+          movielist.appendChild(card);
+        });
+      };
+
+      // Initialize the page
+      const init = async () => {
+        const movies = await fetchMovies();
+        if (movies.length > 0) {
+          const genres = getAllGenres(movies);
+          createGenreButtons(genres);
+          displayMovies("all");
+        } else {
+          document.querySelector(".movielist").innerHTML =
+            "<p>No movies data available.</p>";
+        }
+      };
+
+      // Add event listeners to filter buttons
+      document.addEventListener("click", (e) => {
+        if (e.target.classList.contains("filter")) {
+          const filter = e.target.dataset.filter;
+          displayMovies(filter);
+        }
+      });
+
+      // Initialize on page load
+      init();
+    </script>
+  </body>
+</html>
